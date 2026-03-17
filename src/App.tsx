@@ -57,21 +57,25 @@ const TeamBadge = ({k, sz=36}) => {
 
 const fmtDate = d => new Date(d+"T00:00:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});
 
-const callAPI = async (msgs, useSearch = false) => {
-  // Separate system message from user messages
-  const systemMsgs = msgs.filter(m => m.role === "system");
-  const userMsgs = msgs.filter(m => m.role !== "system");
+
+// ── NEW callAPI — WITH THIS: ──
+const callAPI = async (msgs: any[], useSearch = false) => {
+  const systemMsgs = msgs.filter((m: any) => m.role === "system");
+  const userMsgs = msgs.filter((m: any) => m.role !== "system");
   
-  const body = { 
+  const body: any = { 
     model: "claude-sonnet-4-20250514", 
     max_tokens: 1000, 
     messages: userMsgs
   };
-  if (systemMsgs.length) body.system = systemMsgs.map(m => m.content).join("\n");
+  if (systemMsgs.length) body.system = systemMsgs.map((m: any) => m.content).join("\n");
   if (useSearch) body.tools = [{ type: "web_search_20250305", name: "web_search" }];
   
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+  // Use /api/claude proxy instead of direct Anthropic URL
+  const res = await fetch("/api/claude", {
+    method: "POST", 
+    headers: { "Content-Type": "application/json" }, 
+    body: JSON.stringify(body)
   });
   if (!res.ok) {
     const errBody = await res.text();
@@ -80,8 +84,7 @@ const callAPI = async (msgs, useSearch = false) => {
   const data = await res.json();
   if (data.error) throw new Error(data.error.message || "API error");
   
-  // Extract all text blocks from response (web search returns multiple blocks)
-  const textParts = data.content.filter(b => b.type === "text").map(b => b.text);
+  const textParts = data.content.filter((b: any) => b.type === "text").map((b: any) => b.text);
   if (!textParts.length) throw new Error("No text in API response");
   return textParts.join("\n");
 };
